@@ -1,0 +1,163 @@
+DOCKER FILES FOR VARIOUS Langs
+
+JAVA
+
+Code :
+
+class Hello{  
+  public static void main(String[] args) {
+    System.out.println("I'm Java running in a container.");  
+  }
+}
+
+DockerFile:
+
+# Use an image with the SDK for compilation
+FROM openjdk:8-jdk-alpine AS builder
+WORKDIR /out
+# Get the source code inside the image 
+COPY *.java .
+# Compile source code
+RUN javac Hello.java
+
+# Create a lightweight image 
+FROM openjdk:8-jre-alpine
+# Copy compiled artifacts from previous image
+COPY --from=builder /out/*.class .
+CMD ["java", "Hello"]
+
+
+
+--------------------------------------------------------------
+
+NodeJs
+
+Code:
+SIMPLE REST API
+
+DockerFile
+
+FROM node:10-alpine
+
+# Create app directory
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package.json /usr/src/app/
+RUN npm install
+
+WORKDIR /usr/src/app
+
+# Bundle app source
+COPY . /usr/src/app/
+
+EXPOSE 80
+
+CMD ["npm", "start"]
+
+----------------------------------------------------
+
+
+PHP
+
+Code:
+REST API 
+<?php
+
+  $url = $_REQUEST['rquest'];
+  $components = explode("/", $url);
+  $value = (float)$components[2];
+  $square = $value * $value;
+  header("Content-Type: application/json; charset=UTF-8");
+  $result = (object) array(
+    'value' => $value,
+    'square' => $square
+  );
+  echo json_encode($result);
+
+?>
+
+URL rewriting rules for Apache:
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^(.+) - [PT,L]
+
+  RewriteRule ^(v1/.*)$ myapi.php?rquest=$1 [L]
+
+</IfModule>
+
+Dockerfile :
+
+FROM php:7.0-apache
+
+# Install Apache module
+RUN a2enmod rewrite
+
+COPY . /var/www/html/
+
+------------------------------------------------------------------
+
+.NET Core
+
+Dockerfile
+
+# Use an image with the SDK for compilation
+FROM microsoft/dotnet:2.2-sdk AS builder
+WORKDIR /app
+
+# Get the build file
+COPY *.csproj  .
+# Optional. Run this first so that it is cached
+RUN dotnet restore
+
+# Get the source code inside the image 
+COPY . .
+RUN dotnet publish --output /out/ --configuration Release
+
+# Create a lightweight image
+FROM microsoft/dotnet:2.2-aspnetcore-runtime-alpine
+WORKDIR /app
+# Copy compiled artifacts from previous image
+COPY --from=builder /out .
+EXPOSE 80
+ENTRYPOINT ["dotnet", "aspnet-core.dll"]
+
+
+
+------------------------------------------------------------------
+
+PYHTON Flask
+
+Dockerfile :
+
+FROM python:3.7-stretch
+
+# Install modules
+RUN pip install Flask
+
+# Needed by the Flask module
+ENV FLASK_APP=server.py
+
+# Copy source files into the image
+COPY templates ./templates
+COPY server.py .
+
+EXPOSE 5000
+
+CMD ["flask", "run", "--host=0.0.0.0"]
+
+----------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
